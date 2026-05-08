@@ -1,0 +1,947 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Blue Trivia Flashcard Quiz</title>
+  <style>
+    :root {
+      --bg: #eaf5ff;
+      --panel: #ffffff;
+      --ink: #123047;
+      --muted: #557089;
+      --blue: #1d75d8;
+      --blue-dark: #0f4f9a;
+      --accent: #79c8ff;
+      --good: #1d8f55;
+      --bad: #c83d3d;
+      --shadow: 0 18px 45px rgba(16, 64, 120, 0.18);
+      --radius: 28px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      margin: 0;
+      min-height: 100%;
+      background:
+        radial-gradient(circle at 10% 10%, rgba(121, 200, 255, 0.65), transparent 30%),
+        radial-gradient(circle at 90% 20%, rgba(29, 117, 216, 0.28), transparent 32%),
+        linear-gradient(135deg, #f7fbff 0%, var(--bg) 45%, #dff1ff 100%);
+      color: var(--ink);
+
+      /*
+        Primary-school friendly single-storey /a/ system font stack.
+        This avoids external font loading so the file works offline.
+      */
+      font-family:
+        "Comic Sans MS",
+        "Comic Sans",
+        "Chalkboard SE",
+        "Comic Neue",
+        "Arial Rounded MT Bold",
+        "Trebuchet MS",
+        Verdana,
+        sans-serif;
+    }
+
+    body.high-contrast {
+      --bg: #000000;
+      --panel: #000000;
+      --ink: #ffff00;
+      --muted: #fff59d;
+      --blue: #ffff00;
+      --blue-dark: #ffff00;
+      --accent: #ffff00;
+      --good: #00ff66;
+      --bad: #ff6666;
+      --shadow: none;
+      background: #000000;
+    }
+
+    body.high-contrast .app-shell,
+    body.high-contrast .card,
+    body.high-contrast .topbar,
+    body.high-contrast .answer-option,
+    body.high-contrast .score-card,
+    body.high-contrast .answer-explanation {
+      border-color: #ffff00;
+      box-shadow: none;
+    }
+
+    body.high-contrast button,
+    body.high-contrast .pill,
+    body.high-contrast .nav-dot.active {
+      border: 2px solid #ffff00;
+    }
+
+    body.high-contrast .answer-option.correct {
+      background: #002b11;
+      border-color: #00ff66;
+      color: #00ff66;
+    }
+
+    .app-shell {
+      min-height: 100vh;
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      gap: 16px;
+      padding: clamp(12px, 2vw, 28px);
+    }
+
+    .topbar {
+      width: min(1100px, 100%);
+      margin: 0 auto;
+      background: rgba(255, 255, 255, 0.86);
+      border: 2px solid rgba(29, 117, 216, 0.12);
+      border-radius: 24px;
+      box-shadow: 0 10px 28px rgba(16, 64, 120, 0.12);
+      padding: 14px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+      backdrop-filter: blur(10px);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .logo {
+      width: 48px;
+      height: 48px;
+      display: grid;
+      place-items: center;
+      border-radius: 16px;
+      background: linear-gradient(135deg, var(--blue), #78c7ff);
+      color: white;
+      font-size: 1.5rem;
+      box-shadow: 0 8px 16px rgba(29, 117, 216, 0.25);
+      flex: 0 0 auto;
+    }
+
+    body.high-contrast .logo {
+      background: #000000;
+      color: #ffff00;
+      border: 2px solid #ffff00;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(1.2rem, 2.8vw, 2rem);
+      letter-spacing: -0.02em;
+      line-height: 1.05;
+    }
+
+    .subhead {
+      color: var(--muted);
+      font-size: 0.95rem;
+      margin-top: 3px;
+    }
+
+    .toolbar {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .toggle-row {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--ink);
+      font-weight: 800;
+      white-space: nowrap;
+    }
+
+    .switch {
+      position: relative;
+      display: inline-block;
+      width: 56px;
+      height: 32px;
+    }
+
+    .switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      inset: 0;
+      background: #b7d7ef;
+      transition: .25s;
+      border-radius: 999px;
+      border: 2px solid rgba(18, 48, 71, 0.18);
+    }
+
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 24px;
+      width: 24px;
+      left: 2px;
+      top: 2px;
+      background: #ffffff;
+      transition: .25s;
+      border-radius: 50%;
+      box-shadow: 0 3px 8px rgba(0,0,0,0.2);
+    }
+
+    input:checked + .slider {
+      background: #111111;
+      border-color: #ffff00;
+    }
+
+    input:checked + .slider:before {
+      transform: translateX(24px);
+      background: #ffff00;
+    }
+
+    button {
+      appearance: none;
+      border: none;
+      border-radius: 999px;
+      padding: 12px 18px;
+      font: inherit;
+      font-weight: 900;
+      cursor: pointer;
+      color: #ffffff;
+      background: var(--blue);
+      box-shadow: 0 8px 18px rgba(29, 117, 216, 0.22);
+      transition: transform .16s ease, box-shadow .16s ease, opacity .16s ease;
+      min-height: 44px;
+    }
+
+    button:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 10px 22px rgba(29, 117, 216, 0.27);
+    }
+
+    button:active {
+      transform: translateY(0);
+    }
+
+    button.secondary {
+      background: #ffffff;
+      color: var(--blue-dark);
+      border: 2px solid rgba(29, 117, 216, 0.22);
+      box-shadow: none;
+    }
+
+    button.ghost {
+      background: transparent;
+      color: var(--blue-dark);
+      border: 2px solid rgba(29, 117, 216, 0.2);
+      box-shadow: none;
+    }
+
+    button.good {
+      background: var(--good);
+    }
+
+    button.bad {
+      background: var(--bad);
+    }
+
+    body.high-contrast button {
+      background: #000000;
+      color: #ffff00;
+      box-shadow: none;
+    }
+
+    main {
+      display: grid;
+      place-items: center;
+      width: 100%;
+    }
+
+    .card {
+      width: min(960px, 100%);
+      min-height: min(680px, calc(100vh - 190px));
+      background: rgba(255, 255, 255, 0.94);
+      border-radius: var(--radius);
+      border: 2px solid rgba(29, 117, 216, 0.14);
+      box-shadow: var(--shadow);
+      padding: clamp(18px, 4vw, 48px);
+      display: grid;
+      grid-template-rows: auto auto 1fr auto;
+      gap: clamp(14px, 2.2vw, 26px);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .card::before {
+      content: "";
+      position: absolute;
+      width: 260px;
+      height: 260px;
+      border-radius: 50%;
+      background: rgba(121, 200, 255, 0.2);
+      right: -90px;
+      top: -120px;
+      pointer-events: none;
+    }
+
+    body.high-contrast .card::before {
+      display: none;
+    }
+
+    .card-header {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      flex-wrap: wrap;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 8px 14px;
+      border-radius: 999px;
+      background: rgba(29, 117, 216, 0.1);
+      color: var(--blue-dark);
+      font-weight: 900;
+      font-size: 0.95rem;
+    }
+
+    .progress-text {
+      color: var(--muted);
+      font-weight: 800;
+      font-size: 0.95rem;
+    }
+
+    .question {
+      position: relative;
+      z-index: 1;
+      font-size: clamp(1.6rem, 4.2vw, 3rem);
+      line-height: 1.14;
+      letter-spacing: -0.03em;
+      margin: 0;
+      max-width: 850px;
+    }
+
+    .options {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      gap: 12px;
+      align-self: start;
+    }
+
+    .answer-option {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      align-items: start;
+      gap: 12px;
+      padding: 15px 18px;
+      border-radius: 20px;
+      background: #f4f9ff;
+      border: 2px solid rgba(29, 117, 216, 0.13);
+      font-size: clamp(1.05rem, 2.3vw, 1.45rem);
+      font-weight: 800;
+    }
+
+    .letter {
+      width: 34px;
+      height: 34px;
+      display: inline-grid;
+      place-items: center;
+      border-radius: 12px;
+      background: var(--blue);
+      color: #ffffff;
+      font-weight: 1000;
+      line-height: 1;
+      flex: 0 0 auto;
+    }
+
+    body.high-contrast .letter {
+      background: #ffff00;
+      color: #000000;
+    }
+
+    .answer-option.correct {
+      background: #eaf9f1;
+      border-color: rgba(29, 143, 85, 0.45);
+      color: #0e6f3e;
+    }
+
+    .answer-explanation {
+      position: relative;
+      z-index: 1;
+      background: #f6fbff;
+      border: 2px solid rgba(29, 117, 216, 0.14);
+      border-radius: 22px;
+      padding: 18px;
+      font-size: clamp(1.05rem, 2.2vw, 1.35rem);
+      line-height: 1.35;
+      font-weight: 750;
+    }
+
+    .score-row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .score-card {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      border: 2px solid rgba(29, 117, 216, 0.14);
+      border-radius: 999px;
+      padding: 10px 14px;
+      background: #ffffff;
+      font-weight: 900;
+      color: var(--ink);
+    }
+
+    .navigation {
+      width: min(1100px, 100%);
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      flex-wrap: wrap;
+      padding-bottom: 4px;
+    }
+
+    .nav-buttons {
+      position: fixed;
+      left: clamp(10px, 2vw, 24px);
+      top: 50%;
+      transform: translateY(-50%);
+      z-index: 20;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      flex-wrap: nowrap;
+      align-items: stretch;
+      max-width: 190px;
+    }
+
+    .nav-buttons button {
+      width: 100%;
+      text-align: center;
+      line-height: 1.15;
+      box-shadow: 0 10px 24px rgba(29, 117, 216, 0.24);
+    }
+
+    .dots {
+      display: flex;
+      gap: 5px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .nav-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: rgba(29, 117, 216, 0.22);
+      border: 0;
+      padding: 0;
+      min-height: 0;
+      box-shadow: none;
+    }
+
+    .nav-dot.answer {
+      border-radius: 4px;
+    }
+
+    .nav-dot.active {
+      background: var(--blue);
+      transform: scale(1.25);
+    }
+
+    .nav-dot.done {
+      background: var(--good);
+    }
+
+    .end-title {
+      font-size: clamp(2rem, 6vw, 4.5rem);
+      margin: 0;
+      letter-spacing: -0.05em;
+      line-height: 1;
+    }
+
+    .end-message {
+      font-size: clamp(1.2rem, 2.6vw, 1.8rem);
+      color: var(--muted);
+      line-height: 1.35;
+      font-weight: 800;
+      max-width: 760px;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    @media (max-width: 680px) {
+      .app-shell {
+        grid-template-rows: auto 1fr auto;
+        gap: 10px;
+        padding: 10px;
+      }
+
+      .topbar {
+        border-radius: 18px;
+        padding: 12px;
+      }
+
+      .logo {
+        width: 42px;
+        height: 42px;
+        border-radius: 14px;
+      }
+
+      .toolbar {
+        width: 100%;
+        justify-content: space-between;
+      }
+
+      .card {
+        min-height: calc(100vh - 230px);
+        border-radius: 22px;
+      }
+
+      .navigation {
+        justify-content: center;
+      }
+
+      .nav-buttons {
+        left: 8px;
+        top: 50%;
+        max-width: 138px;
+      }
+
+      .nav-buttons button {
+        font-size: 0.78rem;
+        padding: 9px 10px;
+        min-height: 40px;
+      }
+
+      button {
+        padding: 11px 15px;
+      }
+
+      .dots {
+        max-width: 100%;
+      }
+    }
+
+    @media print {
+      body {
+        background: #ffffff;
+      }
+
+      .topbar,
+      .navigation {
+        display: none;
+      }
+
+      .app-shell {
+        padding: 0;
+        display: block;
+      }
+
+      .card {
+        box-shadow: none;
+        border: 2px solid #000000;
+        border-radius: 0;
+        min-height: auto;
+        height: 100vh;
+        width: 100%;
+        page-break-after: always;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar" aria-label="Quiz controls">
+      <div class="brand">
+        <div class="logo" aria-hidden="true">💙</div>
+        <div>
+          <h1>Blue Trivia Flashcard Quiz</h1>
+          <div class="subhead">Question round first. Answer round at the end.</div>
+        </div>
+      </div>
+
+      <div class="toolbar">
+        <label class="toggle-row" for="contrastToggle">
+          High contrast
+          <span class="switch">
+            <input type="checkbox" id="contrastToggle" />
+            <span class="slider"></span>
+          </span>
+        </label>
+        <button class="secondary" id="printBtn" type="button">Print / Save PDF</button>
+        <button class="ghost" id="restartBtn" type="button">Restart</button>
+      </div>
+    </header>
+
+    <main>
+      <section class="card" id="card" aria-live="polite"></section>
+    </main>
+
+    <footer class="navigation" aria-label="Quiz navigation">
+      <div class="nav-buttons">
+        <button class="secondary" id="prevBtn" type="button">← Back</button>
+        <button id="nextBtn" type="button">Next →</button>
+      </div>
+      <div class="dots" id="dots" aria-hidden="true"></div>
+      <div class="score-card" id="scoreCard">Score: 0 / 10</div>
+    </footer>
+  </div>
+
+  <script>
+    const quiz = [
+      {
+        question: "Which gemstone is famous for its deep blue colour?",
+        options: [
+          ["a", "Sapphire"],
+          ["b", "Emerald"],
+          ["c", "Ruby"],
+          ["d", "Topaz"]
+        ],
+        correct: "a",
+        answer: "Sapphire",
+        explanation: "Sapphires are precious gemstones most often found in deep blue hues, symbolising wisdom, loyalty, and nobility."
+      },
+      {
+        question: "Which Australian TV show follows a blue heeler puppy and her family?",
+        options: [
+          ["a", "Bananas in Pyjamas"],
+          ["b", "Bluey"],
+          ["c", "Play School"],
+          ["d", "The Wiggles"]
+        ],
+        correct: "b",
+        answer: "Bluey",
+        explanation: "Bluey is an Australian children’s TV show about a six-year-old blue heeler puppy and her family, loved for its heartwarming stories and life lessons."
+      },
+      {
+        question: "Which Italian group released the 1998 dance hit Blue (Da Ba Dee)?",
+        options: [
+          ["a", "Aqua"],
+          ["b", "Eiffel 65"],
+          ["c", "Daft Punk"],
+          ["d", "Vengaboys"]
+        ],
+        correct: "b",
+        answer: "Eiffel 65",
+        explanation: "The Italian group Eiffel 65 released Blue (Da Ba Dee) in 1998, which became a worldwide dance hit."
+      },
+      {
+        question: "What is the name of the blue fish in Finding Nemo?",
+        options: [
+          ["a", "Marlin"],
+          ["b", "Dory"],
+          ["c", "Nemo"],
+          ["d", "Coral"]
+        ],
+        correct: "b",
+        answer: "Dory",
+        explanation: "Dory is the bright blue regal tang fish from Finding Nemo and Finding Dory."
+      },
+      {
+        question: "Which Australian city is home to the “Blue Lake,” a volcanic crater lake that changes colour?",
+        options: [
+          ["a", "Darwin"],
+          ["b", "Alice Springs"],
+          ["c", "Hobart"],
+          ["d", "Mount Gambier"]
+        ],
+        correct: "d",
+        answer: "Mount Gambier",
+        explanation: "The Blue Lake in Mount Gambier, South Australia, is a volcanic crater lake that famously turns a bright cobalt blue each summer."
+      },
+      {
+        question: "Which planet in our solar system is often called the “blue planet”?",
+        options: [
+          ["a", "Earth"],
+          ["b", "Neptune"],
+          ["c", "Uranus"],
+          ["d", "Saturn"]
+        ],
+        correct: "a",
+        answer: "Earth",
+        explanation: "Earth is often called the “blue planet” because over 70% of its surface is covered by oceans."
+      },
+      {
+        question: "Which state’s rugby league team is called “The Blues”?",
+        options: [
+          ["a", "Queensland"],
+          ["b", "Victoria"],
+          ["c", "New South Wales"],
+          ["d", "South Australia"]
+        ],
+        correct: "c",
+        answer: "New South Wales",
+        explanation: "The New South Wales rugby league team is nicknamed “The Blues”."
+      },
+      {
+        question: "What is the name of the Australian mountain range known for its blue haze?",
+        options: [
+          ["a", "The Grampians"],
+          ["b", "The Blue Mountains"],
+          ["c", "The Snowy Mountains"],
+          ["d", "The Flinders Ranges"]
+        ],
+        correct: "b",
+        answer: "The Blue Mountains",
+        explanation: "The Blue Mountains in New South Wales get their name from the blue haze created by eucalyptus oil released into the atmosphere."
+      },
+      {
+        question: "Which large blue butterfly is often seen in Queensland rainforests?",
+        options: [
+          ["a", "Ulysses butterfly"],
+          ["b", "Monarch butterfly"],
+          ["c", "Blue morpho butterfly"],
+          ["d", "Painted lady"]
+        ],
+        correct: "a",
+        answer: "Ulysses butterfly",
+        explanation: "The Ulysses butterfly, found in Queensland rainforests, is known for its striking metallic blue wings."
+      },
+      {
+        question: "Which bird is nicknamed the “jewel of the outback” for its bright blue feathers?",
+        options: [
+          ["a", "Blue jay"],
+          ["b", "Kingfisher"],
+          ["c", "Peacock"],
+          ["d", "Splendid fairywren"]
+        ],
+        correct: "d",
+        answer: "Splendid fairywren",
+        explanation: "The male splendid fairywren is nicknamed the “jewel of the outback” for its vivid blue feathers."
+      }
+    ];
+
+    let currentIndex = 0;
+    const totalQuestionCards = quiz.length;
+    const totalCards = quiz.length * 2 + 1;
+    const markedCorrect = new Array(quiz.length).fill(false);
+
+    const card = document.getElementById("card");
+    const dots = document.getElementById("dots");
+    const prevBtn = document.getElementById("prevBtn");
+    const nextBtn = document.getElementById("nextBtn");
+    const scoreCard = document.getElementById("scoreCard");
+    const restartBtn = document.getElementById("restartBtn");
+    const printBtn = document.getElementById("printBtn");
+    const contrastToggle = document.getElementById("contrastToggle");
+
+    function cardType(index) {
+      if (index < quiz.length) return "question";
+      if (index < quiz.length * 2) return "answer";
+      return "end";
+    }
+
+    function questionNumberFromCard(index) {
+      if (index < quiz.length) return index + 1;
+      if (index < quiz.length * 2) return index - quiz.length + 1;
+      return quiz.length;
+    }
+
+    function renderQuestion(index) {
+      const item = quiz[index];
+      const optionHTML = item.options.map(([letter, text]) => `
+        <div class="answer-option">
+          <span class="letter">${letter}</span>
+          <span>${text}</span>
+        </div>
+      `).join("");
+
+      card.innerHTML = `
+        <div class="card-header">
+          <span class="pill">Question Round</span>
+          <span class="progress-text">Question ${index + 1} of ${quiz.length}</span>
+        </div>
+        <h2 class="question">${item.question}</h2>
+        <div class="options">${optionHTML}</div>
+        <div class="score-row">
+          <span class="pill">Think first. Answers come later.</span>
+        </div>
+      `;
+    }
+
+    function renderAnswer(index) {
+      const answerIndex = index - quiz.length;
+      const item = quiz[answerIndex];
+      const optionHTML = item.options.map(([letter, text]) => {
+        const isCorrect = letter === item.correct ? "correct" : "";
+        const label = letter === item.correct ? `${text} ✓` : text;
+        return `
+          <div class="answer-option ${isCorrect}">
+            <span class="letter">${letter}</span>
+            <span>${label}</span>
+          </div>
+        `;
+      }).join("");
+
+      card.innerHTML = `
+        <div class="card-header">
+          <span class="pill">Answer Round</span>
+          <span class="progress-text">Answer ${answerIndex + 1} of ${quiz.length}</span>
+        </div>
+        <h2 class="question">${item.question}</h2>
+        <div class="options">${optionHTML}</div>
+        <div class="answer-explanation">
+          <strong>Correct answer: ${item.correct}. ${item.answer}</strong><br />
+          ${item.explanation}
+        </div>
+        <div class="score-row">
+          <button class="good" type="button" onclick="setScore(${answerIndex}, true)">Got it right</button>
+          <button class="bad" type="button" onclick="setScore(${answerIndex}, false)">Got it wrong</button>
+        </div>
+      `;
+    }
+
+    function renderEnd() {
+      const score = markedCorrect.filter(Boolean).length;
+      let message = "Great quiz round. Review any tricky answers, then play again.";
+      if (score === quiz.length) message = "Perfect score. Excellent blue-trivia knowledge!";
+      else if (score >= 7) message = "Strong result. You know your blue facts well.";
+      else if (score >= 4) message = "Good effort. A quick answer review will help.";
+      else message = "Keep practising. The answer round is there to help you learn.";
+
+      card.innerHTML = `
+        <div class="card-header">
+          <span class="pill">Quiz Complete</span>
+          <span class="progress-text">Final score</span>
+        </div>
+        <h2 class="end-title">${score} / ${quiz.length}</h2>
+        <p class="end-message">${message}</p>
+        <div class="options">
+          ${quiz.map((item, i) => `
+            <div class="answer-option ${markedCorrect[i] ? "correct" : ""}">
+              <span class="letter">${i + 1}</span>
+              <span>${markedCorrect[i] ? "Correct" : "Revise"} — ${item.answer}</span>
+            </div>
+          `).join("")}
+        </div>
+        <div class="score-row">
+          <button type="button" onclick="restartQuiz()">Play again</button>
+          <button class="secondary" type="button" onclick="goToAnswerRound()">Review answers</button>
+        </div>
+      `;
+    }
+
+    function renderDots() {
+      dots.innerHTML = "";
+      for (let i = 0; i < totalCards; i++) {
+        const btn = document.createElement("button");
+        btn.className = "nav-dot";
+        if (cardType(i) === "answer") btn.classList.add("answer");
+        if (i === currentIndex) btn.classList.add("active");
+        if (i >= quiz.length && i < quiz.length * 2 && markedCorrect[i - quiz.length]) btn.classList.add("done");
+        btn.type = "button";
+        btn.title = cardType(i) === "end" ? "Final score" : `${cardType(i)} ${questionNumberFromCard(i)}`;
+        btn.addEventListener("click", () => {
+          currentIndex = i;
+          render();
+        });
+        dots.appendChild(btn);
+      }
+    }
+
+    function updateControls() {
+      prevBtn.disabled = currentIndex === 0;
+      nextBtn.textContent =
+        currentIndex < quiz.length - 1 ? "Next Question →" :
+        currentIndex === quiz.length - 1 ? "Start Answer Round →" :
+        currentIndex < quiz.length * 2 - 1 ? "Next Answer →" :
+        currentIndex === quiz.length * 2 - 1 ? "See Final Score →" :
+        "Restart";
+      scoreCard.textContent = `Score: ${markedCorrect.filter(Boolean).length} / ${quiz.length}`;
+    }
+
+    function render() {
+      const type = cardType(currentIndex);
+      if (type === "question") renderQuestion(currentIndex);
+      if (type === "answer") renderAnswer(currentIndex);
+      if (type === "end") renderEnd();
+
+      renderDots();
+      updateControls();
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    function setScore(index, value) {
+      markedCorrect[index] = value;
+      renderDots();
+      updateControls();
+    }
+
+    function restartQuiz() {
+      currentIndex = 0;
+      markedCorrect.fill(false);
+      render();
+    }
+
+    function goToAnswerRound() {
+      currentIndex = quiz.length;
+      render();
+    }
+
+    prevBtn.addEventListener("click", () => {
+      if (currentIndex > 0) {
+        currentIndex--;
+        render();
+      }
+    });
+
+    nextBtn.addEventListener("click", () => {
+      if (currentIndex < totalCards - 1) {
+        currentIndex++;
+        render();
+      } else {
+        restartQuiz();
+      }
+    });
+
+    restartBtn.addEventListener("click", restartQuiz);
+    printBtn.addEventListener("click", () => window.print());
+
+    contrastToggle.addEventListener("change", (event) => {
+      document.body.classList.toggle("high-contrast", event.target.checked);
+    });
+
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "ArrowRight" || event.key === " ") {
+        event.preventDefault();
+        nextBtn.click();
+      }
+      if (event.key === "ArrowLeft") {
+        event.preventDefault();
+        prevBtn.click();
+      }
+      if (event.key.toLowerCase() === "h") {
+        contrastToggle.checked = !contrastToggle.checked;
+        document.body.classList.toggle("high-contrast", contrastToggle.checked);
+      }
+    });
+
+    render();
+  </script>
+</body>
+</html>
